@@ -21,6 +21,7 @@ export default function AdminDashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [updatingRole, setUpdatingRole] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -48,6 +49,40 @@ export default function AdminDashboard() {
       console.error("Failed to fetch users:", error);
     }
     setLoading(false);
+  };
+
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    setUpdatingRole(userId);
+    try {
+      const response = await fetch("/api/admin/users/update-role", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, role: newRole }),
+      });
+
+      if (response.ok) {
+        // Update the user in the local state
+        setUsers(
+          users.map((user) =>
+            user.id === userId ? { ...user, role: newRole } : user
+          )
+        );
+
+        // Update selected user if it's the same one
+        if (selectedUser?.id === userId) {
+          setSelectedUser({ ...selectedUser, role: newRole });
+        }
+
+        alert("User role updated successfully!");
+      } else {
+        const errorText = await response.text();
+        alert(`Failed to update role: ${errorText}`);
+      }
+    } catch (error) {
+      console.error("Error updating role:", error);
+      alert("Failed to update role due to network error");
+    }
+    setUpdatingRole(null);
   };
 
   if (status === "loading") {
@@ -95,7 +130,7 @@ export default function AdminDashboard() {
                 placeholder="Search users..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full max-w-md px-3 py-2 border text-black border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className=" text-black w-full max-w-md px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
           </div>
@@ -141,15 +176,56 @@ export default function AdminDashboard() {
                         {user.email}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        <span
-                          className={`px-2 py-1 text-xs rounded-full ${
+                        <select
+                          value={user.role}
+                          onChange={(e) =>
+                            handleRoleChange(user.id, e.target.value)
+                          }
+                          disabled={
+                            updatingRole === user.id ||
+                            user.email === session.user.email
+                          }
+                          className={`px-2 py-1 text-xs rounded-full border ${
                             user.role === "admin"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-green-100 text-green-800"
+                              ? "bg-red-100 text-red-800 border-red-200"
+                              : "bg-green-100 text-green-800 border-green-200"
+                          } ${
+                            updatingRole === user.id
+                              ? "opacity-50 cursor-not-allowed"
+                              : "cursor-pointer hover:shadow-sm"
+                          } ${
+                            user.email === session.user.email
+                              ? "opacity-50 cursor-not-allowed"
+                              : ""
                           }`}
                         >
-                          {user.role}
-                        </span>
+                          <option value="user">User</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                        {updatingRole === user.id && (
+                          <div className="inline-flex items-center ml-2">
+                            <svg
+                              className="animate-spin h-4 w-4 text-gray-500"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              ></path>
+                            </svg>
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {user.auth_type}
@@ -177,7 +253,7 @@ export default function AdminDashboard() {
               <button
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-1 border border-gray-300 rounded-md disabled:opacity-50 text-black"
+                className=" text-black px-3 py-1 border border-gray-300 rounded-md disabled:opacity-50"
               >
                 Previous
               </button>
@@ -186,7 +262,7 @@ export default function AdminDashboard() {
                   setCurrentPage((p) => Math.min(totalPages, p + 1))
                 }
                 disabled={currentPage === totalPages}
-                className="px-3 py-1 border border-gray-300 rounded-md disabled:opacity-50 text-black"
+                className="text-black px-3 py-1 border border-gray-300 rounded-md disabled:opacity-50"
               >
                 Next
               </button>
@@ -220,7 +296,61 @@ export default function AdminDashboard() {
                 <label className="text-sm font-medium text-gray-500">
                   Role
                 </label>
-                <p className="text-gray-900">{selectedUser.role}</p>
+                <div className="flex items-center space-x-2">
+                  <select
+                    value={selectedUser.role}
+                    onChange={(e) =>
+                      handleRoleChange(selectedUser.id, e.target.value)
+                    }
+                    disabled={
+                      updatingRole === selectedUser.id ||
+                      selectedUser.email === session.user.email
+                    }
+                    className={`px-3 py-1 text-sm rounded-md border ${
+                      selectedUser.role === "admin"
+                        ? "bg-red-100 text-red-800 border-red-200"
+                        : "bg-green-100 text-green-800 border-green-200"
+                    } ${
+                      updatingRole === selectedUser.id
+                        ? "opacity-50 cursor-not-allowed"
+                        : "cursor-pointer"
+                    } ${
+                      selectedUser.email === session.user.email
+                        ? "opacity-50 cursor-not-allowed"
+                        : ""
+                    }`}
+                  >
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                  {updatingRole === selectedUser.id && (
+                    <svg
+                      className="animate-spin h-4 w-4 text-gray-500"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                  )}
+                </div>
+                {selectedUser.email === session.user.email && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    You cannot change your own role
+                  </p>
+                )}
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-500">
