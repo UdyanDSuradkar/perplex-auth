@@ -5,14 +5,14 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-// Move all the logic that uses useSearchParams into this component
+// Component that uses useSearchParams - wrapped in Suspense
 function SignInContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
   const router = useRouter();
-  const searchParams = useSearchParams(); // This is now wrapped in Suspense
+  const searchParams = useSearchParams(); // Now safely wrapped in Suspense
 
   // Get the callback URL from search params or default to dashboard
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
@@ -262,7 +262,7 @@ function SignInContent() {
   );
 }
 
-// This is the main component that wraps everything in Suspense
+// Main component that provides the Suspense boundary
 export default function SignIn() {
   return (
     <Suspense
@@ -270,7 +270,7 @@ export default function SignIn() {
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-            <p>Loading sign in page...</p>
+            <p className="text-gray-600">Loading sign in page...</p>
           </div>
         </div>
       }
