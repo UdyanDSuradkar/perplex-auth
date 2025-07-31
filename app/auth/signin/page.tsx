@@ -5,14 +5,14 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-// Your existing SignInForm component (unchanged)
-function SignInForm() {
+// Move all the logic that uses useSearchParams into this component
+function SignInContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState<string | null>(null);
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const searchParams = useSearchParams(); // This is now wrapped in Suspense
 
   // Get the callback URL from search params or default to dashboard
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
@@ -43,7 +43,7 @@ function SignInForm() {
     try {
       await signIn(provider, {
         callbackUrl: callbackUrl,
-        redirect: true, // Let NextAuth handle the redirect
+        redirect: true,
       });
     } catch (error) {
       console.error(`${provider} sign in error:`, error);
@@ -262,7 +262,7 @@ function SignInForm() {
   );
 }
 
-// Only change: Wrap your component with Suspense
+// This is the main component that wraps everything in Suspense
 export default function SignIn() {
   return (
     <Suspense
@@ -270,12 +270,12 @@ export default function SignIn() {
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-            <p>Loading...</p>
+            <p>Loading sign in page...</p>
           </div>
         </div>
       }
     >
-      <SignInForm />
+      <SignInContent />
     </Suspense>
   );
 }
